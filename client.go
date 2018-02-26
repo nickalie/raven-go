@@ -679,18 +679,25 @@ func (client *Client) CaptureError(err error, tags map[string]string, interfaces
 		return ""
 	}
 
-	cause := pkgErrors.Cause(err)
-
-	packet := NewPacket(cause.Error(), append(append(interfaces, client.context.interfaces()...), NewException(cause, GetOrNewStacktrace(cause, 1, 3, client.includePaths)))...)
+	packet := client.NewPacketFromError(err, interfaces...)
 	eventID, _ := client.Capture(packet, tags)
 
 	return eventID
+}
+
+func (client *Client) NewPacketFromError(err error, interfaces ...Interface) *Packet {
+	cause := pkgErrors.Cause(err)
+	return NewPacket(cause.Error(), append(append(interfaces, client.context.interfaces()...), NewException(cause, GetOrNewStacktrace(cause, 1, 3, client.includePaths)))...)
 }
 
 // CaptureErrors formats and delivers an error to the Sentry server using the default *Client.
 // Adds a stacktrace to the packet, excluding the call to this method.
 func CaptureError(err error, tags map[string]string, interfaces ...Interface) string {
 	return DefaultClient.CaptureError(err, tags, interfaces...)
+}
+
+func NewPacketFromError(err error, interfaces ...Interface) *Packet {
+	return DefaultClient.NewPacketFromError(err, interfaces...)
 }
 
 // CaptureErrorAndWait is identical to CaptureError, except it blocks and assures that the event was sent
